@@ -16,82 +16,78 @@ Return the minimum difference possible between the sums of the two parts after t
 Constraints:
 
 * nums.length == 3 * n
-* 1 <= n <= 105
-* 1 <= nums[i] <= 105
+* 1 <= n <= 10^5
+* 1 <= nums[i] <= 10^5
 """
 
+# Run:
+# python3 2163_Minimum_Difference_in_Sums_After_Removal_of_Elements.py 
+
 from typing import List
-import heapq
+from heapq import heappush, heappop
 
-import heapq
-
-import heapq
-
+# maintaint the maximum sum because when I add it will remove the smallest
 class MinHeap:
-    def __init__(self, initial=None):
-        if initial is None:
-            self._heap = []
-        else:
-            self._heap = initial[:]
-            heapq.heapify(self._heap)
+    def __init__(self, initial: List[int], n: int):
+        self.heap = []
+        self.curr_sum  = 0
+        self.n = n
+        for x in initial:
+            self.insert(x)
 
-    def push(self, val):
-        heapq.heappush(self._heap, val)
+    def insert(self, val: int) -> 'MinHeap':
+        heappush(self.heap, val)
+        self.curr_sum += val
 
-    def pop(self):
-        return heapq.heappop(self._heap)
+        if len(self.heap) > self.n:
+            popped = heappop(self.heap)
+            self.curr_sum -= popped
+        return self
 
-    def peek(self):
-        return self._heap[0] if self._heap else None
+# maintaint the mimimum sum because when I add it will remove the largest
+class MaxHeap:
+    def __init__(self, initial: List[int], n: int):
+        self.heap = []
+        self.curr_sum  = 0
+        self.n = n
+        for x in initial:
+            self.insert(x)
 
-    def __len__(self):
-        return len(self._heap)
+    def insert(self, val: int) -> 'MaxHeap':
+        heappush(self.heap, -val)
+        self.curr_sum += val
 
-    def is_empty(self):
-        return len(self._heap) == 0
-    
-    def k_min(self, k):
-        return heapq.nsmallest(k, self._heap)
+        if len(self.heap) > self.n:
+            popped = -heappop(self.heap)
+            self.curr_sum -= popped
+        return self
 
-
-class MaxHeap(MinHeap):
-    def __init__(self, initial=None):
-        # Negate all values for max-heap behavior, then pass to super
-        if initial is not None:
-            initial = [-x for x in initial]
-        super().__init__(initial)
-
-    def push(self, val):
-        super().push(-val)
-
-    def pop(self):
-        return -super().pop()
-
-    def peek(self):
-        val = super().peek()
-        return -val if val is not None else None
-
-    def k_max(self, k):
-        negated_k_min = super().k_min(k)
-        return [-x for x in negated_k_min]
-    
-    def k_min(self, k):
-        raise 
 
 class Solution:
     def minimumDifference(self, nums: List[int]) -> int:
-        n = int(len(nums) / 3)
-        start = MaxHeap(nums[:n])
-        end = MinHeap(nums[2*n:])
+        n = len(nums) // 3
+        start = MaxHeap(nums[:n], n)
+        end = MinHeap(nums[2*n:], n)
+
         
+        start_min_sums = [start.curr_sum]
+        end_max_sum = [end.curr_sum]
+        for num in nums[n:2*n]:
+            start.insert(num)
+            start_min_sums.append(start.curr_sum)
+            
+        for num in nums[n:2*n][::-1]:
+            end.insert(num)
+            end_max_sum.append(end.curr_sum)
         
+        end_max_sum.reverse()
         
-        min_dif = sum(nums[:n]) - sum(nums[2*n:])
-        for i, _ in enumerate(nums[:2*n], n):
-            dif = sum(k_min_sort(nums[:i],n)) - sum(k_max_sort(nums[i:],n))
+        min_dif = start_min_sums[0] - end_max_sum[0]
+        for i in range(len(start_min_sums)):
+            dif = start_min_sums[i] - end_max_sum[i]
             if dif < min_dif:
                 min_dif = dif
-                
+
         return min_dif
     
     
@@ -99,14 +95,20 @@ if __name__ == "__main__":
     solution = Solution()
     
     # Test cases
-    nums1 = [3, 1, 2]
-    nums2 = [7, 9, 5, 8, 1, 3]
+    tests = [
+        (-1,[3, 1, 2]),
+        (1,[7, 9, 5, 8, 1, 3]),
+        (-337,[47,26,21,40,3,20,12,19,1,11,37,49,50,29,23,32,27,10,49,24,44,43,46,27,2,3,41,35,10,49,38,44,6,27,27,43,5,36,37,16,5,30,12,15,6,50,44,40,17,45,24,33,32,4,35,37,15,17,13,21]),
+        ]
     
     # Running the test cases
-    print("Test case 1:")
-    result1 = solution.minimumDifference(nums1)
-    print(f"Result for nums1 = {nums1}: {result1}")
-    
-    print("\nTest case 2:")
-    result2 = solution.minimumDifference(nums2)
-    print(f"Result for nums2 = {nums2}: {result2}")
+    for i, (expected, nums) in enumerate(tests, 1):
+        print(f"Test case {i}:")
+        result = solution.minimumDifference(nums)
+        if len(nums) < 20:
+            nums_str = f"{nums}"
+        else: 
+            nums_str = f"[{', '.join(f'{num}' for num in nums[:20])}...]"
+        status = "✅" if result == expected else "❌"
+        sign = "=" if result == expected else "≠"
+        print(f"Result for nums1 = {nums_str}: {result} {sign} {expected} {status}")
