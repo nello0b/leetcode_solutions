@@ -24,71 +24,55 @@ Constraints:
 # python3 2163_Minimum_Difference_in_Sums_After_Removal_of_Elements.py 
 
 from typing import List
-from heapq import heappush, heappop
-
-# maintaint the maximum sum because when I add it will remove the smallest
-class MinHeap:
-    def __init__(self, initial: List[int], n: int):
-        self.heap = []
-        self.curr_sum  = 0
-        self.n = n
-        for x in initial:
-            self.insert(x)
-
-    def insert(self, val: int) -> 'MinHeap':
-        heappush(self.heap, val)
-        self.curr_sum += val
-
-        if len(self.heap) > self.n:
-            popped = heappop(self.heap)
-            self.curr_sum -= popped
-        return self
-
-# maintaint the mimimum sum because when I add it will remove the largest
-class MaxHeap:
-    def __init__(self, initial: List[int], n: int):
-        self.heap = []
-        self.curr_sum  = 0
-        self.n = n
-        for x in initial:
-            self.insert(x)
-
-    def insert(self, val: int) -> 'MaxHeap':
-        heappush(self.heap, -val)
-        self.curr_sum += val
-
-        if len(self.heap) > self.n:
-            popped = -heappop(self.heap)
-            self.curr_sum -= popped
-        return self
+from heapq import heappush, heappop, heapify
 
 
 class Solution:
     def minimumDifference(self, nums: List[int]) -> int:
         n = len(nums) // 3
-        start = MaxHeap(nums[:n], n)
-        end = MinHeap(nums[2*n:], n)
 
-        
-        start_min_sums = [start.curr_sum]
-        end_max_sum = [end.curr_sum]
-        for num in nums[n:2*n]:
-            start.insert(num)
-            start_min_sums.append(start.curr_sum)
-            
-        for num in nums[n:2*n][::-1]:
-            end.insert(num)
-            end_max_sum.append(end.curr_sum)
-        
-        end_max_sum.reverse()
-        
-        min_dif = start_min_sums[0] - end_max_sum[0]
-        for i in range(len(start_min_sums)):
-            dif = start_min_sums[i] - end_max_sum[i]
-            if dif < min_dif:
-                min_dif = dif
+        # Max heap (left part): store negatives to simulate max-heap
+        max_heap = [-num for num in nums[:n]]
+        heapify(max_heap)
+        max_sum = -sum(max_heap)
 
-        return min_dif
+        # Preallocate left sums
+        left_sums = [0] * (n + 1)
+        left_sums[0] = max_sum
+
+        for i in range(n):
+            num = nums[n + i]
+            heappush(max_heap, -num)
+            max_sum += num
+            popped = -heappop(max_heap)
+            max_sum -= popped
+            left_sums[i + 1] = max_sum
+
+        # Min heap (right part)
+        min_heap = nums[2 * n:]
+        heapify(min_heap)
+        min_sum = sum(min_heap)
+
+        # Preallocate right sums
+        right_sums = [0] * (n + 1)
+        right_sums[n] = min_sum
+
+        for i in range(n):
+            num = nums[2 * n - 1 - i]
+            heappush(min_heap, num)
+            min_sum += num
+            popped = heappop(min_heap)
+            min_sum -= popped
+            right_sums[n - 1 - i] = min_sum
+
+        # Find the minimum difference
+        min_diff = left_sums[0] - right_sums[0]
+        for i in range(n + 1):
+            diff = left_sums[i] - right_sums[i]
+            if diff < min_diff:
+                min_diff = diff
+
+        return min_diff
     
     
 if __name__ == "__main__":
